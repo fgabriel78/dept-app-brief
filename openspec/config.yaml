@@ -1,0 +1,43 @@
+schema: spec-driven
+
+context: |
+  # Standard Architecture for Departmental Applications (< 40 users)
+  
+  ## Mandatory Tech Stack
+  - Framework: Next.js (App Router) with strict TypeScript (`strict: true`).
+  - Styling & UI: Tailwind CSS + shadcn/ui components (Radix UI) + Lucide icons.
+  - Database: PostgreSQL.
+  - ORM: Prisma (centralized schema in `prisma/schema.prisma`).
+  - Validation: Zod for all forms, Server Actions, and endpoints.
+  - Authentication: Auth.js (NextAuth v5) configured exclusively with corporate SSO (Entra ID / OIDC). Implementing custom password-based authentication is prohibited.
+  - Deployment: Single Docker container (`output: "standalone"` in `next.config.ts`).
+
+  ## Architecture & Patterns
+  - Modular monolith: everything in a single repository.
+  - Data mutations: Use Next.js Server Actions by default. Reserve Route Handlers (`/api/*`) only for webhooks or external integrations.
+  - Data fetching: Use React Server Components (RSC) querying Prisma directly from the data layer (`src/lib/data/`).
+  - Folder structure:
+    - `src/app/`: Routes, layouts, and pages (App Router).
+    - `src/components/ui/`: Base shadcn/ui components.
+    - `src/components/`: Reusable business components.
+    - `src/actions/`: Server Actions grouped by domain, always validated with Zod and verifying the session.
+    - `src/lib/db.ts`: PrismaClient singleton instance.
+    - `src/lib/auth.ts`: Auth.js configuration and authorization helpers.
+    - `src/lib/validations/`: Shared Zod schemas.
+
+  ## Simplicity Rules
+  - Adding microservices, message queues (Redis/RabbitMQ), or complex global state management (Redux) is prohibited unless explicitly justified.
+  - Always prioritize native Next.js and PostgreSQL solutions.
+
+rules:
+  proposal:
+    - Validate that the feature can be solved within the Next.js + PostgreSQL monolith without adding new infrastructure.
+    - Include a brief "Database Impact" section if it requires changes to `prisma/schema.prisma`.
+  design:
+    - Specify the exact Prisma models (fields, relationships, and indexes).
+    - Define the Zod validation schemas and required Server Actions.
+    - Indicate which components are Server Components (RSC) and which require `'use client'`.
+    - Specify access control (roles/permissions via SSO session) for each route and action.
+  tasks:
+    - Always order tasks in this sequence: 1) Prisma schema and migration, 2) Zod validations, 3) Server Actions and data logic, 4) UI with shadcn/ui, 5) Type checking (`tsc --noEmit`) and build.
+    - Keep tasks small and individually verifiable.
